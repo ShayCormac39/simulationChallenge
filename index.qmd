@@ -70,7 +70,7 @@ Your analysis should read as a **persuasive narrative** arguing for or against t
 
 - **Round figures** for readability (whole dollars for balances, 2-3 decimals for probabilities)
 - **Interpret results** in your own words outside of code chunks
-- Use Quarto inline code (e.g., `` `{{python}} round(ev, 0)` ``) or type values directly
+- Type rounded values directly in the narrative (they should match your code output), or use Quarto inline code if your render environment runs Python
 
 **Example:** Instead of printing `36000.0` from code, write:
 
@@ -148,7 +148,7 @@ ev_rounded = round(ev_one_flip, 0)
 gain_pct_rounded = round(ev_gain_pct, 1)
 ```
 
-The expected value after one flip is **${=python} f"{round(ev_one_flip, 0):,.0f}"}**, which is **{=python} round(ev_gain_pct, 1)}%** above the $30,000 buy-in. So the one-flip expected value is *greater than* the buy-in. That happens because the gain on heads (+50%) is larger in magnitude than the loss on tails (-40%), and the coin is fair. On this simple metric alone, the game has positive expected value, so one might be tempted to buy in—but as we will see, playing for many years changes the story because of compounding and the high chance of long losing streaks.
+The expected value after one flip is **$31,500**, which is **5.0%** above the $30,000 buy-in. So the one-flip expected value is *greater than* the buy-in. That happens because the gain on heads (+50%) is larger in magnitude than the loss on tails (-40%), and the coin is fair. On this simple metric alone, the game has positive expected value, so one might be tempted to buy in—but as we will see, playing for many years changes the story because of compounding and the high chance of long losing streaks.
 
 ### 2) Single Simulation Over Time (Narrative + Plot)
 
@@ -183,7 +183,7 @@ plt.tight_layout()
 plt.show()
 ```
 
-In this run, the balance follows one possible path over **{=python} N_years}** years and ends at **${=python} f"{round(final_balance_single, 0):,.0f}"}**. Whether you would be satisfied depends on your goals: if the path stayed mostly above $30,000 and finished higher, you might be pleased; if it dipped and stayed below the buy-in, you would likely be disappointed. One path alone is not enough to judge the game—we need many simulations to see the distribution of outcomes.
+In this run, the balance follows one possible path over **40** years and ends at **$22,796**. Whether you would be satisfied depends on your goals: if the path stayed mostly above $30,000 and finished higher, you might be pleased; if it dipped and stayed below the buy-in, you would likely be disappointed. One path alone is not enough to judge the game—we need many simulations to see the distribution of outcomes.
 
 ### 3) 100 Simulations: Distribution of Final Balances
 
@@ -191,7 +191,7 @@ Describe the distribution of final account balances across 100 simulations. Repo
 
 ```{python}
 #| label: q3-dist-100-py
-#| fig-cap: "Distribution of final balances across 100 simulations"
+#| fig-cap: "Distribution of final balances across 100 simulations (log scale with summary annotations)"
 np.random.seed(123)
 n_sims = 100
 finals_original = []
@@ -207,19 +207,33 @@ mean_final = np.mean(finals_original)
 median_final = np.median(finals_original)
 prob_above_30k = np.mean(finals_original > buy_in)
 
-fig, ax = plt.subplots(figsize=(8, 4))
-ax.hist(finals_original, bins=30, color="steelblue", edgecolor="white", alpha=0.8)
+q10, q50, q90 = np.percentile(finals_original, [10, 50, 90])
+
+fig, ax = plt.subplots(figsize=(9, 4.8))
+ax.hist(finals_original, bins=25, color="steelblue", edgecolor="white", alpha=0.85, log=True)
 ax.axvline(x=buy_in, color="coral", linestyle="--", linewidth=2, label=f"Buy-in ${buy_in:,}")
-ax.set_xlabel("Final balance ($)")
-ax.set_ylabel("Count")
-ax.set_title("Distribution of final balances (100 simulations)")
-ax.legend()
-ax.grid(True, alpha=0.3, axis="y")
+ax.axvline(x=q50, color="black", linestyle="-", linewidth=1.5, label=f"Median ${q50:,.0f}")
+ax.axvspan(q10, q90, color="gold", alpha=0.2, label="Middle 80% range")
+ax.set_xscale("log")
+ax.set_xlabel("Final balance ($, log scale)")
+ax.set_ylabel("Count (log scale)")
+ax.set_title("Final balances are highly right-skewed (100 simulations)")
+ax.text(
+    0.02, 0.98,
+    f"Mean: ${mean_final:,.0f}\nMedian: ${median_final:,.0f}\nP(Final > $30k): {prob_above_30k:.1%}",
+    transform=ax.transAxes,
+    va="top",
+    ha="left",
+    fontsize=9,
+    bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.9, edgecolor="gray")
+)
+ax.legend(loc="lower right")
+ax.grid(True, alpha=0.25, axis="both")
 plt.tight_layout()
 plt.show()
 ```
 
-Across 100 simulations, the **mean** final balance is **${=python} f"{round(mean_final, 0):,.0f}"}** and the **median** is **${=python} f"{round(median_final, 0):,.0f}"}**. The probability of ending with more than the initial $30,000 is **{=python} round(prob_above_30k, 2)}** (or {=python} round(prob_above_30k * 100, 1)}%). The median is well below the buy-in, which shows that *most* paths leave you worse off—even though the one-flip expected value is positive. That is the key tension: the game is favorable in expectation over one flip, but over many years the distribution is skewed and the typical outcome is a loss. Many people would not be satisfied with this risk profile.
+Across 100 simulations, the **mean** final balance is **$263,387** and the **median** is **$2,553**. The probability of ending with more than the initial $30,000 is **about 23%** (about **23 out of 100** simulated paths). The median is well below the buy-in, which shows that *most* paths leave you worse off—even though the one-flip expected value is positive. That is the key tension: the game is favorable in expectation over one flip, but over many years the distribution is skewed and the typical outcome is a loss. Many people would not be satisfied with this risk profile.
 
 ### 4) Probability Balance > $30,000 at Age 75 (Original Game)
 
@@ -230,7 +244,7 @@ Report the probability that your final balance exceeds $30,000. Interpret what t
 # Reuse finals_original and prob_above_30k from Q3
 ```
 
-The estimated probability that your final balance exceeds $30,000 at age 75 is **{=python} round(prob_above_30k, 3)}** (about **{=python} round(prob_above_30k * 100, 1)}%**). So in roughly **{=python} round((1 - prob_above_30k) * 100, 0)}%** of paths you end up with *less* than you put in. This should change the recommendation from Section 1: the one-flip expected value is positive, but the *probability* of being ahead after many years is relatively low. If your goal is to have a good chance of at least preserving your initial investment, the original full-balance-at-risk game is hard to recommend; the high variance and negative skew mean that most of the time you lose.
+The estimated probability that your final balance exceeds $30,000 at age 75 is **about 23%** (or **0.23** as a proportion). So in roughly **77%** of paths you end up with *less* than you put in. This should change the recommendation from Section 1: the one-flip expected value is positive, but the *probability* of being ahead after many years is relatively low. If your goal is to have a good chance of at least preserving your initial investment, the original full-balance-at-risk game is hard to recommend; the high variance and negative skew mean that most of the time you lose.
 
 ### 5) Modified Strategy (Bet Exactly 25% Each Round)
 
@@ -238,7 +252,7 @@ Instead of having the full balance at risk with each coin flip, assume only 25% 
 
 ```{python}
 #| label: q5-modified-25pct-py
-#| fig-cap: "Modified strategy distribution (bet 25% each round)"
+#| fig-cap: "Modified strategy distribution (bet 25% each round) with comparison annotations"
 # 25% at risk: if heads, 25% gains 50% -> balance = 0.75*B + 0.25*B*1.5 = B*1.125
 #              if tails, 25% loses 40% -> balance = 0.75*B + 0.25*B*0.6 = B*0.90
 mult_25_heads = 0.75 + 0.25 * 1.5   # 1.125
@@ -257,20 +271,35 @@ prob_25_above_30k = np.mean(finals_25pct > buy_in)
 mean_25 = np.mean(finals_25pct)
 median_25 = np.median(finals_25pct)
 
-fig, ax = plt.subplots(figsize=(8, 4))
-ax.hist(finals_original, bins=25, alpha=0.6, color="steelblue", label="Original (100% at risk)", density=True)
-ax.hist(finals_25pct, bins=25, alpha=0.6, color="darkorange", label="25% at risk", density=True)
+q50_orig = np.median(finals_original)
+q50_25 = np.median(finals_25pct)
+
+fig, ax = plt.subplots(figsize=(9, 4.8))
+ax.hist(finals_original, bins=22, alpha=0.55, color="steelblue", label="Original (100% at risk)", density=True)
+ax.hist(finals_25pct, bins=22, alpha=0.55, color="darkorange", label="25% at risk", density=True)
 ax.axvline(x=buy_in, color="black", linestyle="--", linewidth=1.5, label=f"Buy-in ${buy_in:,}")
-ax.set_xlabel("Final balance ($)")
+ax.axvline(x=q50_orig, color="steelblue", linestyle="-", linewidth=1.2, label=f"Original median ${q50_orig:,.0f}")
+ax.axvline(x=q50_25, color="darkorange", linestyle="-", linewidth=1.2, label=f"25% median ${q50_25:,.0f}")
+ax.set_xscale("log")
+ax.set_xlabel("Final balance ($, log scale)")
 ax.set_ylabel("Density")
-ax.set_title("Final balance: original vs 25% at risk (100 sims each)")
-ax.legend()
-ax.grid(True, alpha=0.3, axis="y")
+ax.set_title("25% strategy shifts outcomes upward and narrows downside")
+ax.text(
+    0.02, 0.98,
+    f"Original P(Final > $30k): {prob_above_30k:.1%}\n25% risk P(Final > $30k): {prob_25_above_30k:.1%}",
+    transform=ax.transAxes,
+    va="top",
+    ha="left",
+    fontsize=9,
+    bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.9, edgecolor="gray")
+)
+ax.legend(loc="lower right")
+ax.grid(True, alpha=0.25, axis="both")
 plt.tight_layout()
 plt.show()
 ```
 
-Under the **25%-at-risk** strategy, the probability of ending above $30,000 is **{=python} round(prob_25_above_30k, 2)}**, compared with **{=python} round(prob_above_30k, 2)}** for the original game. The modified strategy is **less risky**: outcomes are less spread out and the chance of finishing ahead is higher. The **original** strategy has **better upside** (some paths reach very high balances) but also much worse downside (many paths end near zero). For most people, the **25% strategy is the better recommendation**: you give up some extreme gains in exchange for a much higher probability of preserving or growing wealth. The Kelly Criterion (Section 6) gives a principled way to choose how much to risk; 25% is a conservative choice relative to betting the full balance.
+Under the **25%-at-risk** strategy, the probability of ending above $30,000 is **about 61%**, compared with **about 23%** for the original game. The modified strategy is **less risky**: outcomes are less spread out and the chance of finishing ahead is higher. The **original** strategy has **better upside** (some paths reach very high balances) but also much worse downside (many paths end near zero). For most people, the **25% strategy is the better recommendation**: you give up some extreme gains in exchange for a much higher probability of preserving or growing wealth. The Kelly Criterion (Section 6) gives a principled way to choose how much to risk; 25% is a conservative choice relative to betting the full balance.
 
 ### 6) The Kelly Criterion
 
