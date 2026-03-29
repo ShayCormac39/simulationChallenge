@@ -75,187 +75,6 @@ investmentDAG.add_plate([-2, 0.5, 7.8, 1.0], label="t = 1, ..., N", shift=-0.1)
 investmentDAG.show()
 ```
 
-## Results and Interpretation
-
-### 1) One-Year Attractiveness: Positive Expected Value
-
-```{python}
-import numpy as np
-
-buy_in = 30_000
-p_heads = 0.5
-mult_heads = 1.5
-mult_tails = 0.6
-
-ev_one_flip = p_heads * (buy_in * mult_heads) + (1 - p_heads) * (buy_in * mult_tails)
-ev_gain_pct = 100 * (ev_one_flip - buy_in) / buy_in
-```
-
-Expected wealth after one year is **$31,500**, a **5.0%** expected gain.
-
-Interpretation: the game is attractive on a single-period average-return basis. But retirement decisions should be based on long-run outcome distributions, not one-period expectation alone.
-
-### 2) Single Path Example: Compounding Risk Is Visible Early
-
-```{python}
-#| label: fig-single-path
-#| fig-cap: One simulated 40-year wealth path
-import matplotlib.pyplot as plt
-
-np.random.seed(42)
-N_years = 40
-balance = buy_in
-path = [balance]
-
-for _ in range(N_years):
-    balance *= mult_heads if np.random.random() < p_heads else mult_tails
-    path.append(balance)
-
-final_balance_single = path[-1]
-
-fig, ax = plt.subplots(figsize=(8, 4))
-ax.plot(range(len(path)), path, color="steelblue", linewidth=1.6)
-ax.axhline(y=buy_in, color="gray", linestyle="--", alpha=0.8, label=f"Buy-in ${buy_in:,}")
-ax.set_xlabel("Year")
-ax.set_ylabel("Account balance ($)")
-ax.set_title("Single simulation trajectory")
-ax.legend()
-ax.grid(True, alpha=0.3)
-plt.tight_layout()
-plt.show()
-```
-
-In this run, final wealth is **$22,796**, below buy-in. One path is not a decision rule, but it demonstrates how drawdowns can persist in multiplicative systems.
-
-### 3) 100 Simulations: Counter-Intuitive Distribution
-
-```{python}
-#| label: fig-dist-100
-#| fig-cap: Distribution of final balances over 100 simulations (log x-scale)
-np.random.seed(123)
-n_sims = 100
-finals_original = []
-
-for _ in range(n_sims):
-    bal = buy_in
-    for _ in range(N_years):
-        bal *= mult_heads if np.random.random() < p_heads else mult_tails
-    finals_original.append(bal)
-
-finals_original = np.array(finals_original)
-mean_final = np.mean(finals_original)
-median_final = np.median(finals_original)
-prob_above_30k = np.mean(finals_original > buy_in)
-q10, q50, q90 = np.percentile(finals_original, [10, 50, 90])
-
-fig, ax = plt.subplots(figsize=(9, 4.8))
-ax.hist(finals_original, bins=25, color="steelblue", edgecolor="white", alpha=0.9, log=True)
-ax.axvline(x=buy_in, color="coral", linestyle="--", linewidth=2, label=f"Buy-in ${buy_in:,}")
-ax.axvline(x=q50, color="black", linestyle="-", linewidth=1.4, label=f"Median ${q50:,.0f}")
-ax.axvspan(q10, q90, color="gold", alpha=0.2, label="Middle 80%")
-ax.set_xscale("log")
-ax.set_xlabel("Final balance ($, log scale)")
-ax.set_ylabel("Count (log scale)")
-ax.set_title("Highly right-skewed outcomes")
-ax.text(
-    0.02,
-    0.98,
-    f"Mean: ${mean_final:,.0f}\nMedian: ${median_final:,.0f}\nP(Final > $30k): {prob_above_30k:.1%}",
-    transform=ax.transAxes,
-    va="top",
-    ha="left",
-    fontsize=9,
-    bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.9, edgecolor="gray"),
-)
-ax.legend(loc="lower right")
-ax.grid(True, alpha=0.25, axis="both")
-plt.tight_layout()
-plt.show()
-```
-
-Key results:
-
-- **Mean final wealth:** $263,387
-- **Median final wealth:** $2,553
-- **Probability of finishing above $30,000:** about 23%
-
-This is the main counter-intuitive finding: the average is high, yet the typical investor loses. A few large winners inflate the mean, while most outcomes are poor.
-
-### 4) Probability of Finishing Ahead (Original Strategy)
-
-The estimated probability of ending with more than $30,000 at age 75 is **about 23%**. Equivalently, around **77%** of paths finish below the initial capital.
-
-Decision implication: for most real investors, this reliability is too low to recommend full-risk participation.
-
-### 5) Modified Strategy: Risk 25% Per Year
-
-```{python}
-#| label: fig-25pct-compare
-#| fig-cap: Original strategy vs 25% risk strategy (final wealth distributions)
-mult_25_heads = 0.75 + 0.25 * 1.5  # 1.125
-mult_25_tails = 0.75 + 0.25 * 0.6  # 0.90
-
-np.random.seed(123)
-finals_25pct = []
-for _ in range(n_sims):
-    bal = buy_in
-    for _ in range(N_years):
-        bal *= mult_25_heads if np.random.random() < p_heads else mult_25_tails
-    finals_25pct.append(bal)
-
-finals_25pct = np.array(finals_25pct)
-prob_25_above_30k = np.mean(finals_25pct > buy_in)
-q50_orig = np.median(finals_original)
-q50_25 = np.median(finals_25pct)
-
-fig, ax = plt.subplots(figsize=(9, 4.8))
-ax.hist(finals_original, bins=22, alpha=0.55, color="steelblue", label="Original (100% at risk)", density=True)
-ax.hist(finals_25pct, bins=22, alpha=0.55, color="darkorange", label="25% at risk", density=True)
-ax.axvline(x=buy_in, color="black", linestyle="--", linewidth=1.5, label=f"Buy-in ${buy_in:,}")
-ax.axvline(x=q50_orig, color="steelblue", linestyle="-", linewidth=1.2, label=f"Original median ${q50_orig:,.0f}")
-ax.axvline(x=q50_25, color="darkorange", linestyle="-", linewidth=1.2, label=f"25% median ${q50_25:,.0f}")
-ax.set_xscale("log")
-ax.set_xlabel("Final balance ($, log scale)")
-ax.set_ylabel("Density")
-ax.set_title("25% strategy improves reliability")
-ax.text(
-    0.02,
-    0.98,
-    f"Original P(Final > $30k): {prob_above_30k:.1%}\n25% risk P(Final > $30k): {prob_25_above_30k:.1%}",
-    transform=ax.transAxes,
-    va="top",
-    ha="left",
-    fontsize=9,
-    bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.9, edgecolor="gray"),
-)
-ax.legend(loc="lower right")
-ax.grid(True, alpha=0.25, axis="both")
-plt.tight_layout()
-plt.show()
-```
-
-With 25% at risk each year, **P(Final > $30,000) rises to about 61%**.
-
-Practical interpretation:
-
-- Full-risk strategy offers extreme upside but poor reliability.
-- 25% strategy gives up some tail upside in exchange for a much better chance of preserving/growing wealth.
-
-### 6) Kelly Criterion Interpretation
-
-For this game, the Kelly-optimal fraction is:
-
-\[
-f^* = \frac{0.5}{0.4} - \frac{0.5}{0.5} = 0.25
-\]
-
-So the model-backed growth-optimal stake is **25% per period**, matching the modified strategy.
-
-## Final Recommendation
-
-Do **not** buy into the original full-balance strategy if your objective is a high probability of preserving or increasing capital by age 75.
-
-If participation is required, use the **25%-at-risk strategy**. It is the better practical decision because it improves outcome reliability and is consistent with Kelly sizing.
 ---
 title: "Simulation Challenge"
 subtitle: "Starter Template with To-Dos"
@@ -377,7 +196,7 @@ investmentDAG.add_plate([-2, 0.5, 7.8, 1.0], label="t = 1, ..., N", shift=-0.1)
 ```
 
 ```{python}
-#| label: fig-investment-dag
+#| label: fig-investment-dag-analysis
 #| fig-cap: Generative DAG model for the investment game showing how wealth evolves over time through coin flips
 #| echo: false
 investmentDAG.show()
@@ -449,7 +268,7 @@ Describe the distribution of final account balances across 100 simulations. Repo
 
 ```{python}
 #| label: q3-dist-100-py
-#| fig-cap: "Distribution of final balances across 100 simulations (log scale with summary annotations)"
+#| fig-cap: "100 simulations: (left) ranked final balances with key percentiles, (right) histogram zoomed to typical outcomes"
 np.random.seed(123)
 n_sims = 100
 finals_original = []
@@ -466,27 +285,46 @@ median_final = np.median(finals_original)
 prob_above_30k = np.mean(finals_original > buy_in)
 
 q10, q50, q90 = np.percentile(finals_original, [10, 50, 90])
+q95 = np.percentile(finals_original, 95)
 
-fig, ax = plt.subplots(figsize=(9, 4.8))
-ax.hist(finals_original, bins=25, color="steelblue", edgecolor="white", alpha=0.85, log=True)
-ax.axvline(x=buy_in, color="coral", linestyle="--", linewidth=2, label=f"Buy-in ${buy_in:,}")
-ax.axvline(x=q50, color="black", linestyle="-", linewidth=1.5, label=f"Median ${q50:,.0f}")
-ax.axvspan(q10, q90, color="gold", alpha=0.2, label="Middle 80% range")
-ax.set_xscale("log")
-ax.set_xlabel("Final balance ($, log scale)")
-ax.set_ylabel("Count (log scale)")
-ax.set_title("Final balances are highly right-skewed (100 simulations)")
-ax.text(
-    0.02, 0.98,
-    f"Mean: ${mean_final:,.0f}\nMedian: ${median_final:,.0f}\nP(Final > $30k): {prob_above_30k:.1%}",
-    transform=ax.transAxes,
-    va="top",
+sorted_finals = np.sort(finals_original)
+ranks = np.arange(1, n_sims + 1)
+
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11, 4.6), gridspec_kw={"wspace": 0.25})
+
+# Left: ranked dot plot (easy to read: how many end up above buy-in)
+ax1.scatter(ranks, sorted_finals, s=26, color="steelblue", alpha=0.9, edgecolor="none")
+ax1.axhline(y=buy_in, color="coral", linestyle="--", linewidth=2, label=f"Buy-in ${buy_in:,}")
+ax1.axhline(y=q50, color="black", linestyle="-", linewidth=1.4, label=f"Median ${q50:,.0f}")
+ax1.axhline(y=q10, color="goldenrod", linestyle=":", linewidth=1.4, label=f"10th pct ${q10:,.0f}")
+ax1.axhline(y=q90, color="goldenrod", linestyle=":", linewidth=1.4, label=f"90th pct ${q90:,.0f}")
+ax1.set_yscale("log")
+ax1.set_xlabel("Simulation (ranked by final balance)")
+ax1.set_ylabel("Final balance ($, log scale)")
+ax1.set_title("Ranked outcomes (100 sims)")
+ax1.grid(True, alpha=0.25, axis="both")
+ax1.legend(loc="lower right", fontsize=8)
+ax1.text(
+    0.02, 0.02,
+    f"P(Final > $30k): {prob_above_30k:.1%}\nMean: ${mean_final:,.0f}\nMedian: ${median_final:,.0f}",
+    transform=ax1.transAxes,
+    va="bottom",
     ha="left",
     fontsize=9,
     bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.9, edgecolor="gray")
 )
-ax.legend(loc="lower right")
-ax.grid(True, alpha=0.25, axis="both")
+
+# Right: histogram zoomed to typical outcomes (clip extreme right tail)
+clipped = np.clip(finals_original, 0, q95)
+ax2.hist(clipped, bins=18, color="steelblue", edgecolor="white", alpha=0.85)
+ax2.axvline(x=buy_in, color="coral", linestyle="--", linewidth=2, label=f"Buy-in ${buy_in:,}")
+ax2.axvline(x=q50, color="black", linestyle="-", linewidth=1.4, label=f"Median ${q50:,.0f}")
+ax2.set_xlabel(f"Final balance ($, capped at 95th pct = ${q95:,.0f})")
+ax2.set_ylabel("Count")
+ax2.set_title("Typical outcomes (zoomed)")
+ax2.grid(True, alpha=0.25, axis="y")
+ax2.legend(loc="upper right", fontsize=8)
+
 plt.tight_layout()
 plt.show()
 ```
@@ -586,6 +424,11 @@ f^* \;=\; \frac{0.5\cdot 0.5 - 0.5\cdot 0.4}{0.4\cdot 0.5}
 
 So **Kelly recommends risking 25% of your bankroll each round**, which matches the modified strategy in Section 5. This supports the recommendation: betting 25% is not arbitrary; it is the fraction that maximizes long‑run growth for this win/loss structure. Betting 100% (the original game) is over‑betting and increases variance and the chance of ruin; betting less than 25% is safer but grows more slowly.
 
+## Final Recommendation
+
+Do **not** buy into the original full-balance strategy if your objective is a high probability of preserving or increasing capital by age 75.
+
+If participation is required, use the **25%-at-risk strategy**. It is the better practical decision because it improves outcome reliability and is consistent with Kelly sizing.
 
 ## Professional Presentation
 
