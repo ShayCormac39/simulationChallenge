@@ -411,15 +411,20 @@ Let:
 If you risk fraction \(f\), then a win multiplies wealth by \((1 + b f)\) and a loss multiplies wealth by \((1 - a f)\). The Kelly‑optimal fraction is:
 
 \[
-f^* \;=\; \frac{p\,b - (1-p)\,a}{a\,b}.
+\begin{aligned}
+f^* &= \frac{p\,b - (1-p)\,a}{a\,b}
+\end{aligned}
 \]
 
 In our game, \(p = 0.5\), \(b = 0.5\) (gain \(50\%\) on the amount at risk), and \(a = 0.4\) (loss \(40\%\) on the amount at risk). Plugging in:
 
 \[
-f^* \;=\; \frac{0.5\cdot 0.5 - 0.5\cdot 0.4}{0.4\cdot 0.5}
-\;=\; \frac{0.25 - 0.20}{0.20}
-\;=\; 0.25.
+\begin{aligned}
+f^*
+&= \frac{(0.5)(0.5) - (0.5)(0.4)}{(0.4)(0.5)} \\
+&= \frac{0.25 - 0.20}{0.20} \\
+&= 0.25
+\end{aligned}
 \]
 
 So **Kelly recommends risking 25% of your bankroll each round**, which matches the modified strategy in Section 5. This supports the recommendation: betting 25% is not arbitrary; it is the fraction that maximizes long‑run growth for this win/loss structure. Betting 100% (the original game) is over‑betting and increases variance and the chance of ruin; betting less than 25% is safer but grows more slowly.

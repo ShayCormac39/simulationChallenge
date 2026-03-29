@@ -61,6 +61,35 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <!-- htmldependencies:E3FAD763 -->
 
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
 
 </head>
 
@@ -329,9 +358,20 @@ Figure 2: Generative DAG model for the investment game showing how wealth evolv
 <li>(f): fraction of current bankroll risked each round</li>
 </ul>
 <p>If you risk fraction (f), then a win multiplies wealth by ((1 + b f)) and a loss multiplies wealth by ((1 - a f)). The Kelly‑optimal fraction is:</p>
-<p>[ f^* ;=; . ]</p>
+[
+<span class="math display">\[\begin{aligned}
+f^* &amp;= \frac{p\,b - (1-p)\,a}{a\,b}
+\end{aligned}\]</span>
+<p>]</p>
 <p>In our game, (p = 0.5), (b = 0.5) (gain (50%) on the amount at risk), and (a = 0.4) (loss (40%) on the amount at risk). Plugging in:</p>
-<p>[ f^* ;=; ;=; ;=; 0.25. ]</p>
+[
+<span class="math display">\[\begin{aligned}
+f^*
+&amp;= \frac{(0.5)(0.5) - (0.5)(0.4)}{(0.4)(0.5)} \\
+&amp;= \frac{0.25 - 0.20}{0.20} \\
+&amp;= 0.25
+\end{aligned}\]</span>
+<p>]</p>
 <p>So <strong>Kelly recommends risking 25% of your bankroll each round</strong>, which matches the modified strategy in Section 5. This supports the recommendation: betting 25% is not arbitrary; it is the fraction that maximizes long‑run growth for this win/loss structure. Betting 100% (the original game) is over‑betting and increases variance and the chance of ruin; betting less than 25% is safer but grows more slowly.</p>
 </section>
 </section>
